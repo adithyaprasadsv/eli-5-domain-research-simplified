@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELI5 Research Lab</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,300;1,9..144,500&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+:root {
+  --ink: #1a1410;
+  --paper: #f5f0e8;
+  --paper2: #ede7d9;
+  --paper3: #e4dccb;
+  --cream: #faf7f2;
+  --rust: #c4501a;
+  --rust-light: #e8896a;
+  --teal: #1a7a6e;
+  --teal-light: #4ab5a6;
+  --gold: #c4961a;
+  --muted: #7a6e5f;
+  --border: #cfc4b0;
+  --shadow: rgba(26,20,16,0.12);
+}
+
+/* colors: {
+  ink:    '#1a1410',  // sidebar bg + main text
+  paper:  '#f5f0e8',  // page background
+  cream:  '#faf7f2',  // card/input backgrounds
+  rust:   '#c4501a',  // primary — buttons, YOU badges, focus rings
+  teal:   '#1a7a6e',  // secondary — AI badges, success, connection dot
+  gold:   '#c4961a',  // tertiary — AI+You badges
+  muted:  '#7a6e5f',  // placeholder text, labels
+  border: '#cfc4b0',  // all dividers and outlines
+} */
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Space Mono', monospace;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Subtle grid texture */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(26,20,16,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,20,16,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none; z-index:0;
+}
+
+/* ── Layout ── */
+.app { display:grid; grid-template-columns:260px 1fr; min-height:100vh; position:relative; z-index:1; }
+
+/* ── Sidebar ── */
+.sidebar {
+  background: var(--ink);
+  color: var(--paper);
+  display:flex; flex-direction:column;
+  position:sticky; top:0; height:100vh;
+  overflow:hidden;
+}
+
+.sidebar-top {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid rgba(245,240,232,0.08);
+}
+
+.logo {
+  font-family: 'Fraunces', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.logo em { color: var(--rust-light); font-style: italic; }
+.logo-sub {
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(245,240,232,0.35);
+  margin-top: 5px;
+}
+
+.nav-btn {
+  display:flex; align-items:center; gap:10px;
+  padding: 10px 16px;
+  margin: 4px 8px;
+  border-radius: 8px;
+  cursor:pointer;
+  font-family:'Space Mono',monospace;
+  font-size: 0.75rem;
+  color: rgba(245,240,232,0.55);
+  border:none; background:transparent;
+  text-align:left; width:calc(100% - 16px);
+  transition: all 0.18s;
+  letter-spacing: 0.02em;
+}
+.nav-btn:hover { background:rgba(245,240,232,0.07); color:var(--paper); }
+.nav-btn.active { background:rgba(196,80,26,0.2); color:var(--rust-light); }
+.nav-btn .icon { font-size:1rem; width:20px; text-align:center; flex-shrink:0; }
+
+.sidebar-section-label {
+  padding: 16px 24px 6px;
+  font-size:0.6rem;
+  letter-spacing:0.15em;
+  text-transform:uppercase;
+  color:rgba(245,240,232,0.2);
+}
+
+/* Library list in sidebar */
+.sidebar-library {
+  flex:1; overflow-y:auto; padding-bottom:16px;
+}
+.sidebar-library::-webkit-scrollbar { width:3px; }
+.sidebar-library::-webkit-scrollbar-thumb { background:rgba(245,240,232,0.1); }
+
+.lib-item {
+  padding: 10px 16px;
+  margin: 2px 8px;
+  border-radius: 7px;
+  cursor:pointer;
+  transition: all 0.15s;
+}
+.lib-item:hover { background:rgba(245,240,232,0.06); }
+.lib-item.active-item { background:rgba(26,122,110,0.2); }
+.lib-item-title {
+  font-size:0.72rem;
+  color:rgba(245,240,232,0.75);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-family:'Fraunces',serif;
+}
+.lib-item-meta { font-size:0.6rem; color:rgba(245,240,232,0.3); margin-top:2px; }
+
+.sidebar-bottom {
+  padding:16px 24px;
+  border-top:1px solid rgba(245,240,232,0.08);
+  font-size:0.65rem;
+  color:rgba(245,240,232,0.2);
+  line-height:1.6;
+}
+
+/* ── Main content ── */
+.main { overflow-y:auto; }
+
+/* ── Views ── */
+.view { display:none; padding:40px 48px 80px; animation: viewIn 0.3s ease; }
+.view.active { display:block; }
+@keyframes viewIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+.view-header { margin-bottom:36px; }
+.view-title {
+  font-family:'Fraunces',serif;
+  font-size:2rem;
+  font-weight:500;
+  letter-spacing:-0.03em;
+  line-height:1.1;
+}
+.view-title em { color:var(--rust); font-style:italic; }
+.view-subtitle { color:var(--muted); font-size:0.75rem; margin-top:8px; line-height:1.7; }
+
+/* ── Input tabs ── */
+.input-tabs {
+  display:flex; gap:0;
+  border:1px solid var(--border);
+  border-radius:10px;
+  overflow:hidden;
+  width:fit-content;
+  margin-bottom:24px;
+}
+.itab {
+  padding:9px 20px;
+  font-family:'Space Mono',monospace;
+  font-size:0.72rem;
+  cursor:pointer; border:none;
+  background:transparent; color:var(--muted);
+  transition:all 0.15s;
+  border-right:1px solid var(--border);
+}
+.itab:last-child { border-right:none; }
+.itab.active { background:var(--ink); color:var(--paper); }
+
+.input-panel { display:none; }
+.input-panel.active { display:block; }
+
+/* ── Form elements ── */
+label.field-label {
+  display:block;
+  font-size:0.65rem;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:7px;
+}
+
+input[type=text], textarea, select {
+  width:100%;
+  background:var(--cream);
+  border:1px solid var(--border);
+  border-radius:9px;
+  padding:12px 14px;
+  font-family:'Space Mono',monospace;
+  font-size:0.8rem;
+  color:var(--ink);
+  outline:none;
+  transition:border-color 0.2s, box-shadow 0.2s;
+  resize:vertical;
+}
+input[type=text]:focus, textarea:focus, select:focus {
+  border-color:var(--rust);
+  box-shadow:0 0 0 3px rgba(196,80,26,0.08);
+}
+input::placeholder, textarea::placeholder { color:var(--muted); opacity:0.6; }
+select { cursor:pointer; }
+textarea { min-height:110px; line-height:1.65; }
+
+.field-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:16px; }
+.field-group { display:flex; flex-direction:column; }
+
+/* ── Upload zone ── */
+.upload-zone {
+  border:2px dashed var(--border);
+  border-radius:12px;
+  padding:36px 24px;
+  text-align:center;
+  cursor:pointer;
+  transition:all 0.2s;
+  position:relative;
+  background:var(--cream);
+}
+.upload-zone:hover, .upload-zone.drag { border-color:var(--rust); background:rgba(196,80,26,0.03); }
+.upload-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+.upload-zone .uz-icon { font-size:2rem; margin-bottom:10px; }
+.upload-zone p { color:var(--muted); font-size:0.78rem; }
+.upload-zone .uz-file { color:var(--rust); font-weight:700; margin-top:8px; font-size:0.8rem; }
+
+/* ── Buttons ── */
+.btn {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:12px 24px;
+  border-radius:9px; border:none; cursor:pointer;
+  font-family:'Space Mono',monospace;
+  font-size:0.78rem; font-weight:700;
+  transition:all 0.18s;
+  letter-spacing:0.02em;
+}
+.btn-primary { background:var(--rust); color:#fff; }
+.btn-primary:hover { background:#b04515; transform:translateY(-1px); box-shadow:0 4px 14px rgba(196,80,26,0.3); }
+.btn-primary:disabled { opacity:0.4; cursor:not-allowed; transform:none; box-shadow:none; }
+.btn-teal { background:var(--teal); color:#fff; }
+.btn-teal:hover { background:#156057; transform:translateY(-1px); }
+.btn-ghost { background:transparent; color:var(--ink); border:1px solid var(--border); }
+.btn-ghost:hover { border-color:var(--ink); }
+.btn-row { display:flex; gap:10px; margin-top:24px; flex-wrap:wrap; align-items:center; }
+
+/* ── Loading ── */
+.loading-overlay {
+  display:none; position:fixed; inset:0; background:rgba(245,240,232,0.85);
+  backdrop-filter:blur(4px); z-index:100;
+  flex-direction:column; align-items:center; justify-content:center; gap:16px;
+}
+.loading-overlay.active { display:flex; }
+.loader-ring {
+  width:48px; height:48px;
+  border:3px solid var(--border);
+  border-top-color:var(--rust);
+  border-radius:50%;
+  animation:spin 0.75s linear infinite;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+.loader-text { font-family:'Fraunces',serif; font-size:1.1rem; color:var(--ink); }
+.loader-sub { font-size:0.72rem; color:var(--muted); }
+
+/* ── Editor cards ── */
+.editor-section { margin-bottom:20px; }
+
+.e-card {
+  background:var(--cream);
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+  transition:box-shadow 0.2s;
+}
+.e-card:focus-within { box-shadow:0 2px 16px var(--shadow); }
+
+.e-card-head {
+  padding:11px 16px;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  background:var(--paper2);
+}
+.e-card-label {
+  font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase;
+  color:var(--muted); display:flex; align-items:center; gap:8px;
+}
+.badge {
+  font-size:0.58rem; padding:2px 8px; border-radius:20px;
+  letter-spacing:0.07em; text-transform:uppercase;
+}
+.badge-ai   { background:rgba(26,122,110,0.12); color:var(--teal); border:1px solid rgba(26,122,110,0.2); }
+.badge-you  { background:rgba(196,80,26,0.12);  color:var(--rust);  border:1px solid rgba(196,80,26,0.2); }
+.badge-both { background:rgba(196,150,26,0.12); color:var(--gold);  border:1px solid rgba(196,150,26,0.2); }
+
+.e-card textarea {
+  border:none; border-radius:0; background:transparent;
+  padding:14px 16px; min-height:90px;
+}
+.e-card textarea:focus { box-shadow:none; }
+
+/* ── Jargon table ── */
+.jargon-wrap { overflow-x:auto; }
+.jargon-tbl { width:100%; border-collapse:collapse; }
+.jargon-tbl th {
+  padding:9px 14px; text-align:left;
+  font-size:0.62rem; letter-spacing:0.1em; text-transform:uppercase;
+  color:var(--muted); border-bottom:1px solid var(--border);
+}
+.jargon-tbl td { padding:3px 6px; border-bottom:1px solid rgba(207,196,176,0.4); }
+.jargon-tbl input { border:none; border-radius:6px; padding:8px 10px; min-height:unset; font-size:0.78rem; }
+.jargon-tbl input:focus { box-shadow:none; border:1px solid var(--border); }
+.jargon-tbl .del-btn {
+  background:none; border:none; cursor:pointer; color:var(--muted);
+  font-size:0.9rem; padding:4px 8px; border-radius:4px; transition:color 0.15s;
+}
+.jargon-tbl .del-btn:hover { color:var(--rust); }
+.add-jargon-btn {
+  background:none; border:1px dashed var(--border); color:var(--muted);
+  padding:7px 14px; border-radius:6px; margin:10px 16px;
+  font-family:'Space Mono',monospace; font-size:0.72rem; cursor:pointer;
+  transition:all 0.15s;
+}
+.add-jargon-btn:hover { border-color:var(--rust); color:var(--rust); }
+
+/* ── Stars ── */
+.star-row { display:flex; gap:6px; padding:12px 16px; }
+.star { font-size:1.3rem; cursor:pointer; opacity:0.2; transition:all 0.12s; }
+.star.on { opacity:1; }
+.star:hover { transform:scale(1.25); }
+
+/* ── Divider ── */
+.divider { height:1px; background:var(--border); margin:28px 0; }
+
+/* ── Preview ── */
+.preview-box {
+  background:var(--cream);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:28px 32px;
+  font-family:'Space Mono',monospace;
+  font-size:0.78rem;
+  line-height:1.85;
+  white-space:pre-wrap;
+  color:var(--ink);
+  max-height:520px;
+  overflow-y:auto;
+  word-break:break-word;
+}
+.preview-box::-webkit-scrollbar { width:4px; }
+.preview-box::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+/* ── Library grid ── */
+.library-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+
+.paper-card {
+  background:var(--cream);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px;
+  cursor:pointer;
+  transition:all 0.2s;
+  position:relative;
+  overflow:hidden;
+}
+.paper-card::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--rust);
+}
+.paper-card:hover { box-shadow:0 6px 24px var(--shadow); transform:translateY(-2px); }
+.paper-card-domain {
+  font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:8px;
+}
+.paper-card-title {
+  font-family:'Fraunces',serif; font-size:1rem;
+  font-weight:500; line-height:1.35; margin-bottom:10px;
+  color:var(--ink);
+}
+.paper-card-summary { font-size:0.72rem; color:var(--muted); line-height:1.65; }
+.paper-card-footer {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:14px; padding-top:12px; border-top:1px solid var(--border);
+}
+.paper-card-date { font-size:0.62rem; color:var(--muted); }
+.paper-card-btns { display:flex; gap:6px; }
+.card-btn {
+  padding:5px 10px; border-radius:5px; border:1px solid var(--border);
+  background:transparent; color:var(--muted);
+  font-family:'Space Mono',monospace; font-size:0.62rem;
+  cursor:pointer; transition:all 0.15s;
+}
+.card-btn:hover { border-color:var(--ink); color:var(--ink); }
+.card-btn.danger:hover { border-color:var(--rust); color:var(--rust); }
+
+.empty-library {
+  text-align:center; padding:64px 24px;
+  grid-column:1/-1;
+}
+.empty-library .empty-icon { font-size:3rem; margin-bottom:16px; opacity:0.3; }
+.empty-library p { color:var(--muted); font-size:0.78rem; line-height:1.7; }
+
+/* ── Error ── */
+.error-msg {
+  background:rgba(196,80,26,0.08);
+  border:1px solid rgba(196,80,26,0.25);
+  color:var(--rust);
+  border-radius:8px;
+  padding:12px 16px;
+  font-size:0.75rem;
+  display:none; margin-top:12px;
+}
+.error-msg.show { display:block; }
+
+/* ── Toast ── */
+.toast {
+  position:fixed; bottom:28px; right:28px; z-index:200;
+  background:var(--ink); color:var(--paper);
+  padding:11px 20px; border-radius:9px; font-size:0.75rem;
+  transform:translateY(60px); opacity:0; transition:all 0.28s;
+  pointer-events:none;
+}
+.toast.show { transform:translateY(0); opacity:1; }
+
+/* ── GitHub modal ── */
+.modal-backdrop {
+  display:none; position:fixed; inset:0; z-index:300;
+  background:rgba(26,20,16,0.55); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center;
+}
+.modal-backdrop.open { display:flex; }
+.modal {
+  background:var(--paper); border:1px solid var(--border);
+  border-radius:16px; padding:32px; width:100%; max-width:480px;
+  box-shadow:0 20px 60px rgba(26,20,16,0.25);
+  animation:modalIn 0.25s ease;
+}
+@keyframes modalIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+.modal-title {
+  font-family:'Fraunces',serif; font-size:1.3rem; font-weight:500;
+  margin-bottom:6px; letter-spacing:-0.02em;
+}
+.modal-sub { font-size:0.72rem; color:var(--muted); margin-bottom:24px; line-height:1.65; }
+.modal-field { margin-bottom:14px; }
+.modal-actions { display:flex; gap:10px; margin-top:24px; justify-content:flex-end; }
+
+/* GitHub status badge on cards */
+.gh-badge {
+  font-size:0.58rem; padding:2px 7px; border-radius:20px;
+  background:rgba(26,122,110,0.12); color:var(--teal);
+  border:1px solid rgba(26,122,110,0.2);
+  letter-spacing:0.06em; text-transform:uppercase;
+}
+
+/* Settings view */
+.settings-card {
+  background:var(--cream); border:1px solid var(--border);
+  border-radius:12px; padding:24px; margin-bottom:16px;
+}
+.settings-card-title {
+  font-family:'Fraunces',serif; font-size:1rem; font-weight:500;
+  margin-bottom:4px;
+}
+.settings-card-sub { font-size:0.72rem; color:var(--muted); margin-bottom:18px; line-height:1.6; }
+.token-display {
+  font-family:'Space Mono',monospace; font-size:0.75rem;
+  background:var(--paper2); border:1px solid var(--border);
+  border-radius:7px; padding:10px 14px; color:var(--muted);
+  word-break:break-all; margin-top:10px;
+}
+.connected-indicator {
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:0.72rem; color:var(--teal); font-weight:700;
+}
+.dot-green { width:7px; height:7px; border-radius:50%; background:var(--teal); display:inline-block; }
+.dot-red   { width:7px; height:7px; border-radius:50%; background:var(--rust);  display:inline-block; }
+
+/* Step progress */
+.step-track {
+  display:flex; align-items:center; gap:8px; margin-bottom:32px;
+}
+.step-pip {
+  width:28px; height:28px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.65rem; font-weight:700; flex-shrink:0;
+  border:2px solid var(--border); color:var(--muted);
+  transition:all 0.25s;
+}
+.step-pip.done { background:var(--teal); border-color:var(--teal); color:#fff; }
+.step-pip.current { background:var(--rust); border-color:var(--rust); color:#fff; }
+.step-line { flex:1; height:1px; background:var(--border); }
+.step-name { font-size:0.65rem; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="logo"><em>ELI5</em> Paper Lab</div>
+      <div class="logo-sub">Research · Simplified</div>
+    </div>
+
+    <div style="padding:12px 8px 4px;">
+      <button class="nav-btn active" id="nav-new" onclick="showView('new')">
+        <span class="icon">✏️</span> New Summary
+      </button>
+      <button class="nav-btn" id="nav-library" onclick="showView('library')">
+        <span class="icon">📚</span> My Library
+      </button>
+      <button class="nav-btn" id="nav-settings" onclick="showView('settings')">
+        <span class="icon">⚙️</span> GitHub Settings
+      </button>
+    </div>
+
+    <div class="sidebar-section-label">Saved Papers</div>
+    <div class="sidebar-library" id="sidebar-library">
+      <!-- injected -->
+    </div>
+
+    <div class="sidebar-bottom" id="sidebar-gh-status">
+      Summaries saved locally.<br>Configure GitHub to push directly to your repo.
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- VIEW: New Summary -->
+    <div class="view active" id="view-new">
+      <div class="view-header">
+        <div class="view-title">New <em>Summary</em></div>
+        <div class="view-subtitle">Feed the paper → AI drafts the structure → you add the intuition.</div>
+      </div>
+
+      <!-- Step tracker -->
+      <div class="step-track">
+        <div class="step-pip current" id="pip-1">1</div>
+        <div class="step-line"></div>
+        <div class="step-pip" id="pip-2">2</div>
+        <div class="step-line"></div>
+        <div class="step-pip" id="pip-3">3</div>
+      </div>
+
+      <!-- Step 1: Input -->
+      <div id="s1">
+        <div class="input-tabs">
+          <button class="itab active" onclick="switchTab('url')">ArXiv / URL</button>
+          <button class="itab" onclick="switchTab('pdf')">PDF Upload</button>
+        </div>
+
+        <div class="input-panel active" id="tab-url">
+          <label class="field-label">Paper URL</label>
+          <input type="text" id="arxiv-url" placeholder="https://arxiv.org/abs/1706.03762" />
+          <p style="color:var(--muted);font-size:0.7rem;margin-top:6px;">Works with ArXiv, Semantic Scholar, or any paper URL</p>
+        </div>
+
+        <div class="input-panel" id="tab-pdf">
+          <div class="upload-zone" id="drop-zone">
+            <input type="file" accept=".pdf" id="pdf-input" onchange="handlePDF(this)" />
+            <div class="uz-icon">📄</div>
+            <p>Drop PDF here or <strong>click to browse</strong></p>
+            <div class="uz-file" id="uz-name"></div>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Domain</label>
+            <select id="domain">
+              <option value="supply-chain">Supply Chain</option>
+              <option value="energy-battery">Energy — Battery</option>
+              <option value="energy-others">Energy — Others</option>
+              <option value="sport-strategies">Sport Strategies</option>
+              <option value="reinforcement-learning">Reinforcement Learning</option>
+              <option value="others">Others</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Year</label>
+            <input type="text" id="year" placeholder="2024" maxlength="4" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Authors</label>
+            <input type="text" id="authors" placeholder="Vaswani et al." />
+          </div>
+        </div>
+
+        <div class="error-msg" id="s1-error"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="generateDraft()">⚡ Generate AI Draft</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Edit -->
+      <div id="s2" style="display:none;">
+        <p style="font-size:0.75rem;color:var(--muted);margin-bottom:22px;line-height:1.7;">
+          AI filled the <span style="color:var(--teal);font-weight:700;">green</span> sections. Add your <span style="color:var(--rust);font-weight:700;">Analogy</span> and <span style="color:var(--rust);font-weight:700;">ELI5</span> — that's the irreplaceable part.
+        </p>
+
+        <div id="editor-cards"></div>
+
+        <div class="divider"></div>
+        <label class="field-label">Difficulty</label>
+        <div class="e-card" style="margin-bottom:20px;">
+          <div class="e-card-head"><span class="e-card-label">⭐ Complexity Rating <span class="badge badge-you">You</span></span></div>
+          <div class="star-row" id="stars">
+            <span class="star on" onclick="setStars(1)">⭐</span>
+            <span class="star on" onclick="setStars(2)">⭐</span>
+            <span class="star" onclick="setStars(3)">⭐</span>
+            <span class="star" onclick="setStars(4)">⭐</span>
+            <span class="star" onclick="setStars(5)">⭐</span>
+          </div>
+        </div>
+
+        <label class="field-label">Jargon Decoder</label>
+        <div class="e-card" style="margin-bottom:20px;">
+          <div class="e-card-head"><span class="e-card-label">🔤 Key Terms <span class="badge badge-both">AI + You</span></span></div>
+          <div class="jargon-wrap">
+            <table class="jargon-tbl">
+              <thead><tr><th>Jargon</th><th>Plain English</th><th></th></tr></thead>
+              <tbody id="jargon-body"></tbody>
+            </table>
+          </div>
+          <button class="add-jargon-btn" onclick="addJargonRow()">+ Add term</button>
+        </div>
+
+        <div class="error-msg" id="s2-error"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="goStep3()">👁 Preview & Save</button>
+          <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Preview + Save -->
+      <div id="s3" style="display:none;">
+        <div class="preview-box" id="preview-box"></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveSummary()">💾 Save to Library</button>
+          <button class="btn btn-teal" onclick="downloadMD()">⬇ Download .md</button>
+          <button class="btn btn-ghost" id="push-btn-s3" onclick="openPushModal('current')">🐙 Push to GitHub</button>
+          <button class="btn btn-ghost" onclick="goStep(2)">← Edit</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: Library -->
+    <div class="view" id="view-library">
+      <div class="view-header">
+        <div class="view-title">My <em>Library</em></div>
+        <div class="view-subtitle">All your saved ELI5 summaries. Click any card to view or download.</div>
+      </div>
+      <div class="library-grid" id="library-grid">
+        <!-- injected -->
+      </div>
+    </div>
+
+    <!-- VIEW: Detail -->
+    <div class="view" id="view-detail">
+      <div style="margin-bottom:20px;">
+        <button class="btn btn-ghost" onclick="showView('library')" style="padding:8px 16px;font-size:0.7rem;">← Back to Library</button>
+      </div>
+      <div class="preview-box" id="detail-box"></div>
+      <div class="btn-row">
+        <button class="btn btn-teal" onclick="downloadCurrentDetail()">⬇ Download .md</button>
+        <button class="btn btn-ghost" onclick="openPushModal('detail')">🐙 Push to GitHub</button>
+        <button class="btn btn-ghost" onclick="deleteCurrentDetail()" style="color:var(--rust);border-color:rgba(196,80,26,0.3);">🗑 Delete</button>
+      </div>
+    </div>
+
+    <!-- VIEW: Settings -->
+    <div class="view" id="view-settings">
+      <div class="view-header">
+        <div class="view-title">GitHub <em>Settings</em></div>
+        <div class="view-subtitle">Connect once — push any summary directly to your repo, auto-sorted by domain.</div>
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-card-title">🔑 Personal Access Token</div>
+        <div class="settings-card-sub">
+          Generate a token at <strong>github.com → Settings → Developer settings → Personal access tokens → Fine-grained</strong>.
+          Grant <strong>Contents: Read & Write</strong> on your target repo only.<br><br>
+          <strong style="color:var(--rust);">🔒 Security:</strong> Your token is held in <code style="background:var(--paper2);padding:1px 5px;border-radius:3px;font-size:0.72rem;">sessionStorage</code> only — it is never written to disk or localStorage, and clears automatically when you close the tab. You will need to re-enter it each session.
+        </div>
+        <label class="field-label">GitHub Token (this session only)</label>
+        <input type="password" id="gh-token-input" placeholder="github_pat_..." />
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-card-title">📁 Repository Details</div>
+        <div class="settings-card-sub">Which repo should summaries be pushed to?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="field-group">
+            <label class="field-label">GitHub Username</label>
+            <input type="text" id="gh-owner" placeholder="your-username" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Repository Name</label>
+            <input type="text" id="gh-repo" placeholder="papers-eli5" />
+          </div>
+        </div>
+        <div style="margin-top:14px;">
+          <label class="field-label">Branch</label>
+          <input type="text" id="gh-branch" placeholder="main" style="max-width:200px;" />
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-card-title">📂 File Path — You Choose Every Time</div>
+        <div class="settings-card-sub">
+          When you push a summary, a modal will ask you to confirm (or edit) the file path and commit message before anything is sent. Nothing is pushed without your explicit review.<br><br>
+          The suggested path is pre-filled as <code style="background:var(--paper2);padding:2px 6px;border-radius:4px;font-size:0.75rem;">{domain}/{paper-slug}.md</code> — e.g. <code style="background:var(--paper2);padding:2px 6px;border-radius:4px;font-size:0.75rem;">machine-learning/attention-is-all-you-need.md</code> — but you can type any path you want before confirming.
+        </div>
+        <div id="gh-connection-status" style="margin-top:4px;"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveGHSettings()">Save Settings</button>
+        <button class="btn btn-ghost" onclick="testGHConnection()">Test Connection</button>
+        <button class="btn btn-ghost" onclick="clearGHSettings()" style="color:var(--rust);border-color:rgba(196,80,26,0.3);">Clear</button>
+      </div>
+      <div class="error-msg" id="settings-error"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── GitHub Push Modal ── -->
+<div class="modal-backdrop" id="push-modal">
+  <div class="modal">
+    <div class="modal-title">🐙 Push to GitHub</div>
+    <div class="modal-sub">Review the file path before pushing. The file will be created or updated in your repo.</div>
+    <div class="modal-field">
+      <label class="field-label">File Path in Repo</label>
+      <input type="text" id="push-path" placeholder="machine-learning/paper-title.md" />
+    </div>
+    <div class="modal-field">
+      <label class="field-label">Commit Message</label>
+      <input type="text" id="push-commit-msg" placeholder="Add ELI5 summary: paper title" />
+    </div>
+    <div class="error-msg" id="push-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closePushModal()">Cancel</button>
+      <button class="btn btn-primary" id="push-confirm-btn" onclick="confirmPush()">Push to GitHub</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loading">
+  <div class="loader-ring"></div>
+  <div class="loader-text">Analyzing paper...</div>
+  <div class="loader-sub" id="load-msg">Extracting core concepts</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  CONFIG — edit anything in this block to customise the app              ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+const CONFIG = {
+
+  // ── 🎨 APPEARANCE ──────────────────────────────────────────────────────────
+  // Change these hex values to retheme the entire app instantly.
+  // After editing, save the file and hard-refresh (Cmd/Ctrl + Shift + R).
+  colors: {
+    ink:        '#1a1410',   // main text & sidebar background
+    paper:      '#f5f0e8',   // page background
+    cream:      '#faf7f2',   // card / input backgrounds
+    rust:       '#c4501a',   // primary accent (buttons, highlights, YOU badges)
+    teal:       '#1a7a6e',   // secondary accent (AI badges, success states)
+    gold:       '#c4961a',   // tertiary accent (AI+You badges)
+    muted:      '#7a6e5f',   // subdued text, placeholders
+    border:     '#cfc4b0',   // all borders and dividers
+  },
+
+  // ── 🔤 FONTS ───────────────────────────────────────────────────────────────
+  // fontDisplay  → headings, logo, card titles (loaded from Google Fonts)
+  // fontMono     → body text, inputs, buttons
+  // To swap fonts: change the name here AND update the @import URL in <style>.
+  fontDisplay: 'Fraunces',
+  fontMono:    'Space Mono',
+
+  // ── 📋 EDITOR SECTIONS ─────────────────────────────────────────────────────
+  // Controls which fields appear in Step 2 (the editing screen).
+  // badge: 'ai'   → green  (AI fills this)
+  // badge: 'you'  → rust   (you fill this — left blank by AI)
+  // badge: 'both' → gold   (AI pre-fills, you refine)
+  // To remove a section: delete its line.
+  // To add a section: add a new object and add the field ID to the fmap in generateDraft().
+  sections: [
+    { id:'one-line',     label:'💬 One-Line Summary',          badge:'ai',   ph:'AI generating...' },
+    { id:'problem',      label:'🤔 Problem It Solves',          badge:'ai',   ph:'AI generating...' },
+    { id:'big-idea',     label:'💡 The Big Idea',               badge:'ai',   ph:'AI generating...' },
+    { id:'how-it-works', label:'🔬 How It Works (Simply)',      badge:'ai',   ph:'AI generating...' },
+    { id:'analogy',      label:'🍎 Your Analogy',               badge:'you',  ph:'Add your analogy — use supply chains, energy grids, sports plays, game rules...' },
+    { id:'eli5',         label:'👶 ELI5 — Explain to a 10yo',  badge:'you',  ph:'Write this as if talking to a curious kid. Zero jargon.' },
+    { id:'why-matters',  label:'🌍 Why It Matters',             badge:'ai',   ph:'AI generating...' },
+    { id:'limitations',  label:'❓ What It Doesn\'t Do',        badge:'ai',   ph:'AI generating...' },
+    { id:'read-next',    label:'📚 Read Next',                  badge:'both', ph:'2-3 related papers worth exploring...' },
+  ],
+
+  // ── 🤖 AI SYSTEM PROMPT ────────────────────────────────────────────────────
+  // This is the instruction sent to Claude before every paper analysis.
+  // Tips for editing:
+  //   • Keep the JSON field names exactly as-is (one_line, problem, etc.) —
+  //     they are mapped to editor fields in generateDraft().
+  //   • Add domain context here to get more relevant output, e.g.:
+  //     "Focus on supply chain, energy, sport, or RL applications."
+  //   • Increase or decrease sentence counts to control output length.
+  //   • Change the persona ("expert science communicator") to shift tone.
+  systemPrompt: `You are an expert science communicator specialising in applied research across supply chain optimisation, battery and energy systems, sport performance strategies, and reinforcement learning. Analyse the research paper and return ONLY valid JSON (no markdown, no backticks) with these exact fields:
+{
+  "title": "Full paper title",
+  "one_line": "One clear sentence summarising what the paper does or proves",
+  "problem": "What specific problem or gap existed before this paper (2-3 sentences)",
+  "big_idea": "The core insight or contribution, explained simply without jargon (2-3 sentences)",
+  "how_it_works": "Step-by-step explanation of the method or approach, no jargon (3-5 sentences)",
+  "why_matters": "Real-world impact and practical applications in the relevant domain (2-3 sentences)",
+  "limitations": "What the paper does not prove, assumptions made, or known weaknesses (2-3 sentences)",
+  "read_next": "2-3 related paper titles worth reading next, comma separated",
+  "jargon": [{"term": "technical term", "plain": "plain English definition"}]
+}
+Return ONLY the JSON object. No preamble, no explanation, no markdown fences.`,
+
+  // ── ⏳ LOADING MESSAGES ────────────────────────────────────────────────────
+  // Rotated during AI generation. Edit freely — keep them short and fun.
+  loadingMessages: [
+    'Extracting core concepts...',
+    'Finding the key insight...',
+    'Decoding the jargon...',
+    'Structuring your template...',
+    'Almost there...',
+  ],
+
+  // ── 🤖 AI MODEL ────────────────────────────────────────────────────────────
+  // Only change this if Anthropic releases a newer model you want to use.
+  model: 'claude-sonnet-4-20250514',
+
+  // ── 📝 MARKDOWN FOOTER ─────────────────────────────────────────────────────
+  // Appears at the bottom of every generated .md file.
+  markdownFooter: '*Generated with ELI5 Paper Lab*',
+};
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  END CONFIG — do not edit below unless you know what you're doing        ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+
+// Apply colour theme from CONFIG at runtime
+(function applyTheme() {
+  const r = document.documentElement.style;
+  const c = CONFIG.colors;
+  r.setProperty('--ink',    c.ink);
+  r.setProperty('--paper',  c.paper);
+  r.setProperty('--cream',  c.cream);
+  r.setProperty('--rust',   c.rust);
+  r.setProperty('--teal',   c.teal);
+  r.setProperty('--gold',   c.gold);
+  r.setProperty('--muted',  c.muted);
+  r.setProperty('--border', c.border);
+  // Derived values
+  r.setProperty('--rust-light', c.rust + 'bb');
+  r.setProperty('--teal-light', c.teal + 'bb');
+  r.setProperty('--shadow', 'rgba(26,20,16,0.12)');
+})();
+const DB_KEY = 'eli5-papers-v1';
+
+function getDB() {
+  try { return JSON.parse(localStorage.getItem(DB_KEY) || '[]'); }
+  catch { return []; }
+}
+function saveDB(data) {
+  localStorage.setItem(DB_KEY, JSON.stringify(data));
+}
+function addPaper(paper) {
+  const db = getDB();
+  db.unshift(paper);
+  saveDB(db);
+  refreshSidebar();
+  refreshLibrary();
+}
+function deletePaper(id) {
+  const db = getDB().filter(p => p.id !== id);
+  saveDB(db);
+  refreshSidebar();
+  refreshLibrary();
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentTab = 'url';
+let difficulty = 2;
+let pdfBase64 = null;
+let currentDetailId = null;
+
+const SECTIONS = CONFIG.sections;
+
+// ── Tab / View ────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.itab').forEach((b,i) => b.classList.toggle('active', ['url','pdf'][i]===tab));
+  document.querySelectorAll('.input-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const nb = document.getElementById('nav-'+name);
+  if (nb) nb.classList.add('active');
+  if (name === 'library') refreshLibrary();
+}
+
+// ── Steps ─────────────────────────────────────────────────────────────────────
+function goStep(n) {
+  [1,2,3].forEach(i => {
+    document.getElementById('s'+i).style.display = i===n ? 'block' : 'none';
+    const pip = document.getElementById('pip-'+i);
+    pip.classList.remove('current','done');
+    if (i < n) pip.classList.add('done');
+    else if (i === n) pip.classList.add('current');
+  });
+  document.getElementById('view-new').scrollTop = 0;
+  document.querySelector('.main').scrollTop = 0;
+}
+
+function goStep3() {
+  document.getElementById('preview-box').textContent = buildMarkdown();
+  goStep(3);
+}
+
+// ── PDF ───────────────────────────────────────────────────────────────────────
+function handlePDF(input) {
+  const file = input.files[0]; if (!file) return;
+  document.getElementById('uz-name').textContent = '✓ ' + file.name;
+  const r = new FileReader();
+  r.onload = e => { pdfBase64 = e.target.result.split(',')[1]; };
+  r.readAsDataURL(file);
+}
+
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    document.getElementById('pdf-input').files = e.dataTransfer.files;
+    handlePDF(document.getElementById('pdf-input'));
+  }
+});
+
+// ── Stars ─────────────────────────────────────────────────────────────────────
+function setStars(n) {
+  difficulty = n;
+  document.querySelectorAll('.star').forEach((s,i) => s.classList.toggle('on', i<n));
+}
+
+// ── Jargon ────────────────────────────────────────────────────────────────────
+function addJargonRow(term='', plain='') {
+  const tbody = document.getElementById('jargon-body');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" placeholder="e.g. Attention" value="${escHtml(term)}" /></td>
+    <td><input type="text" placeholder="e.g. What the model focuses on" value="${escHtml(plain)}" /></td>
+    <td><button class="del-btn" onclick="this.closest('tr').remove()">×</button></td>`;
+  tbody.appendChild(tr);
+}
+
+function getJargon() {
+  return Array.from(document.querySelectorAll('#jargon-body tr')).map(tr => {
+    const inp = tr.querySelectorAll('input');
+    return { term: inp[0].value.trim(), plain: inp[1].value.trim() };
+  }).filter(r => r.term);
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// ── Build editor cards ────────────────────────────────────────────────────────
+function buildEditorCards() {
+  const wrap = document.getElementById('editor-cards');
+  wrap.innerHTML = '';
+  SECTIONS.forEach(s => {
+    const d = document.createElement('div');
+    d.className = 'editor-section';
+    d.innerHTML = `
+      <div class="e-card">
+        <div class="e-card-head">
+          <span class="e-card-label">${s.label}
+            <span class="badge badge-${s.badge}">${s.badge==='ai'?'AI':s.badge==='you'?'You':'AI+You'}</span>
+          </span>
+        </div>
+        <textarea id="f-${s.id}" placeholder="${s.ph}" rows="4"></textarea>
+      </div>`;
+    wrap.appendChild(d);
+  });
+}
+
+// ── Generate draft ────────────────────────────────────────────────────────────
+async function generateDraft() {
+  const err = document.getElementById('s1-error');
+  err.classList.remove('show');
+
+  let messages;
+  if (currentTab === 'url') {
+    const url = document.getElementById('arxiv-url').value.trim();
+    if (!url) { showErr(err, 'Please enter a paper URL.'); return; }
+    messages = [{ role:'user', content:`Analyze this research paper: ${url}` }];
+  } else {
+    if (!pdfBase64) { showErr(err, 'Please upload a PDF first.'); return; }
+    messages = [{
+      role:'user',
+      content:[
+        { type:'document', source:{ type:'base64', media_type:'application/pdf', data:pdfBase64 } },
+        { type:'text', text:'Analyze this research paper.' }
+      ]
+    }];
+  }
+
+  showLoading(true);
+  let mi = 0;
+  const iv = setInterval(() => {
+    document.getElementById('load-msg').textContent = CONFIG.loadingMessages[++mi % CONFIG.loadingMessages.length];
+  }, 2200);
+
+  const system = CONFIG.systemPrompt;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body:JSON.stringify({ model: CONFIG.model, max_tokens:1000, system, messages })
+    });
+    const data = await res.json();
+    clearInterval(iv); showLoading(false);
+
+    const raw = (data.content||[]).map(b=>b.text||'').join('');
+    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+
+    buildEditorCards();
+    const fmap = { 'one-line':'one_line','problem':'problem','big-idea':'big_idea',
+                   'how-it-works':'how_it_works','why-matters':'why_matters',
+                   'limitations':'limitations','read-next':'read_next' };
+    Object.entries(fmap).forEach(([fid, key]) => {
+      const el = document.getElementById('f-'+fid);
+      if (el) el.value = parsed[key] || '';
+    });
+
+    // Title → authors placeholder
+    if (parsed.title) document.getElementById('authors').placeholder = parsed.title.slice(0,50);
+
+    // Jargon
+    document.getElementById('jargon-body').innerHTML = '';
+    (parsed.jargon||[]).forEach(j => addJargonRow(j.term, j.plain));
+
+    goStep(2);
+
+  } catch(e) {
+    clearInterval(iv); showLoading(false);
+    showErr(err, 'Error: ' + e.message);
+  }
+}
+
+// ── Build Markdown ─────────────────────────────────────────────────────────────
+function buildMarkdown() {
+  const domain  = document.getElementById('domain').value;
+  const year    = document.getElementById('year').value || '????';
+  const authors = document.getElementById('authors').value || 'Unknown';
+  const url     = document.getElementById('arxiv-url').value || '#';
+  const stars   = '⭐'.repeat(difficulty) + '☆'.repeat(5-difficulty);
+  const jargon  = getJargon();
+  const get     = id => (document.getElementById('f-'+id)?.value||'').trim() || '_To be added_';
+
+  const jargonMD = jargon.length
+    ? `| Jargon | Plain English |\n|--------|---------------|\n` + jargon.map(r=>`| ${r.term} | ${r.plain} |`).join('\n')
+    : '_No terms added._';
+
+  const title = get('one-line').split('.')[0].replace(/_To be added_/,'Untitled Paper');
+
+  return `# ${title}
+
+> **Domain:** ${domain} | **Year:** ${year} | **Difficulty:** ${stars}
+
+📄 [Original Paper](${url}) | 👤 Authors: ${authors}
+
+---
+
+## 💬 One-Line Summary
+${get('one-line')}
+
+---
+
+## 🤔 The Problem It Solves
+${get('problem')}
+
+---
+
+## 💡 The Big Idea
+${get('big-idea')}
+
+---
+
+## 🔬 How It Works (Simply)
+${get('how-it-works')}
+
+---
+
+## 🍎 Analogy
+${get('analogy')}
+
+---
+
+## 👶 ELI5 — Explain Like I'm 5
+${get('eli5')}
+
+---
+
+## 🌍 Why It Matters
+${get('why-matters')}
+
+---
+
+## ❓ What It Doesn't Do
+${get('limitations')}
+
+---
+
+## 🧩 Key Terms Decoded
+${jargonMD}
+
+---
+
+## 📚 Read Next
+${get('read-next')}
+
+---
+${CONFIG.markdownFooter}
+`;
+}
+
+// ── Save ──────────────────────────────────────────────────────────────────────
+function saveSummary() {
+  const md = buildMarkdown();
+  const title = (document.getElementById('f-one-line')?.value||'Untitled').split('.')[0].trim().slice(0,80);
+  const paper = {
+    id: Date.now().toString(),
+    title,
+    domain: document.getElementById('domain').value,
+    year: document.getElementById('year').value || '????',
+    authors: document.getElementById('authors').value || 'Unknown',
+    summary: (document.getElementById('f-one-line')?.value||'').slice(0,160),
+    markdown: md,
+    saved: new Date().toLocaleDateString()
+  };
+  addPaper(paper);
+  toast('✓ Saved to library!');
+  setTimeout(() => showView('library'), 800);
+}
+
+// ── Download ──────────────────────────────────────────────────────────────────
+function downloadMD() {
+  const md = buildMarkdown();
+  triggerDownload(md, slugify(document.getElementById('f-one-line')?.value||'paper'));
+}
+
+function downloadCurrentDetail() {
+  const db = getDB();
+  const p = db.find(x => x.id === currentDetailId);
+  if (p) triggerDownload(p.markdown, slugify(p.title));
+}
+
+function triggerDownload(content, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type:'text/markdown'}));
+  a.download = filename + '.md';
+  a.click();
+  toast('⬇ Downloaded!');
+}
+
+function slugify(s) {
+  return (s||'paper').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,60);
+}
+
+// ── Library ───────────────────────────────────────────────────────────────────
+function refreshLibrary() {
+  const grid = document.getElementById('library-grid');
+  const db = getDB();
+  if (!db.length) {
+    grid.innerHTML = `<div class="empty-library"><div class="empty-icon">📭</div><p>No summaries yet.<br>Create your first ELI5 summary above.</p></div>`;
+    return;
+  }
+  grid.innerHTML = db.map(p => `
+    <div class="paper-card" onclick="openDetail('${p.id}')">
+      <div class="paper-card-domain">${p.domain} · ${p.year}</div>
+      <div class="paper-card-title">${escHtml(p.title)}</div>
+      <div class="paper-card-summary">${escHtml((p.summary||'').slice(0,120))}${p.summary?.length>120?'…':''}</div>
+      <div class="paper-card-footer">
+        <span class="paper-card-date">${p.saved}</span>
+        <div class="paper-card-btns" onclick="event.stopPropagation()">
+          <button class="card-btn" onclick="(()=>{const pp=getDB().find(x=>x.id==='${p.id}');if(pp)triggerDownload(pp.markdown,slugify(pp.title))})()">⬇ .md</button>
+          <button class="card-btn danger" onclick="if(confirm('Delete this summary?')){deletePaper('${p.id}');refreshLibrary();}">🗑</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function refreshSidebar() {
+  const db = getDB();
+  const wrap = document.getElementById('sidebar-library');
+  if (!db.length) { wrap.innerHTML = '<div style="padding:12px 24px;color:rgba(245,240,232,0.2);font-size:0.68rem;">None yet</div>'; return; }
+  wrap.innerHTML = db.slice(0,12).map(p => `
+    <div class="lib-item" onclick="openDetail('${p.id}')">
+      <div class="lib-item-title">${escHtml(p.title.slice(0,38))}${p.title.length>38?'…':''}</div>
+      <div class="lib-item-meta">${p.domain} · ${p.year}</div>
+    </div>`).join('');
+}
+
+function openDetail(id) {
+  currentDetailId = id;
+  const p = getDB().find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('detail-box').textContent = p.markdown;
+  showView('detail');
+  document.querySelectorAll('.lib-item').forEach(el => el.classList.remove('active-item'));
+}
+
+function deleteCurrentDetail() {
+  if (!currentDetailId) return;
+  if (!confirm('Delete this summary?')) return;
+  deletePaper(currentDetailId);
+  currentDetailId = null;
+  showView('library');
+}
+
+// ── GitHub Settings ───────────────────────────────────────────────────────────
+// Token: sessionStorage only (clears on tab close — never written to disk)
+// Repo/branch: localStorage (not sensitive, convenient to persist)
+const GH_REPO_KEY = 'eli5-gh-repo';
+
+function getGHSettings() {
+  try {
+    const repo = JSON.parse(localStorage.getItem(GH_REPO_KEY) || '{}');
+    const token = sessionStorage.getItem('eli5-gh-token') || '';
+    return { token, owner: repo.owner || '', repo: repo.repo || '', branch: repo.branch || 'main' };
+  } catch { return { token:'', owner:'', repo:'', branch:'main' }; }
+}
+
+function saveGHSettings() {
+  const token  = document.getElementById('gh-token-input').value.trim();
+  const owner  = document.getElementById('gh-owner').value.trim();
+  const repo   = document.getElementById('gh-repo').value.trim();
+  const branch = document.getElementById('gh-branch').value.trim() || 'main';
+  const err    = document.getElementById('settings-error');
+  err.classList.remove('show');
+
+  if (!token || !owner || !repo) { showErr(err, 'Token, username and repo are all required.'); return; }
+
+  // Token → sessionStorage (tab-scoped, never persisted to disk)
+  sessionStorage.setItem('eli5-gh-token', token);
+  // Repo details → localStorage (not sensitive)
+  localStorage.setItem(GH_REPO_KEY, JSON.stringify({ owner, repo, branch }));
+  refreshGHStatus();
+  toast('✓ Settings saved. Token lives this session only.');
+}
+
+function clearGHSettings() {
+  if (!confirm('Clear GitHub credentials?')) return;
+  sessionStorage.removeItem('eli5-gh-token');
+  localStorage.removeItem(GH_REPO_KEY);
+  document.getElementById('gh-token-input').value = '';
+  document.getElementById('gh-owner').value = '';
+  document.getElementById('gh-repo').value = '';
+  document.getElementById('gh-branch').value = '';
+  refreshGHStatus();
+  toast('GitHub settings cleared.');
+}
+
+async function testGHConnection() {
+  const s = getGHSettings();
+  const err = document.getElementById('settings-error');
+  const status = document.getElementById('gh-connection-status');
+  err.classList.remove('show');
+  if (!s.token || !s.owner || !s.repo) { showErr(err, 'Save your settings first.'); return; }
+
+  status.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">Testing...</span>';
+  try {
+    const res = await fetch(`https://api.github.com/repos/${s.owner}/${s.repo}`, {
+      headers: { Authorization: `Bearer ${s.token}`, Accept: 'application/vnd.github+json' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      status.innerHTML = `<span class="connected-indicator"><span class="dot-green"></span> Connected to <strong>${data.full_name}</strong> (${data.visibility})</span>`;
+    } else {
+      const d = await res.json();
+      status.innerHTML = `<span class="connected-indicator"><span class="dot-red"></span> Failed: ${d.message}</span>`;
+    }
+  } catch(e) {
+    status.innerHTML = `<span class="connected-indicator"><span class="dot-red"></span> Network error</span>`;
+  }
+}
+
+function refreshGHStatus() {
+  const s = getGHSettings();
+  const hasToken  = !!s.token;
+  const hasRepo   = !!(s.owner && s.repo);
+  const connected = hasToken && hasRepo;
+  const sidebar   = document.getElementById('sidebar-gh-status');
+
+  // Repopulate fields — repo from localStorage, token blank (session only, don't echo back)
+  document.getElementById('gh-owner').value  = s.owner;
+  document.getElementById('gh-repo').value   = s.repo;
+  document.getElementById('gh-branch').value = s.branch;
+  // Show token placeholder if already set this session
+  const tokenInput = document.getElementById('gh-token-input');
+  if (hasToken && !tokenInput.value) tokenInput.placeholder = '●●●●●● (set this session)';
+
+  // Sidebar indicator
+  if (sidebar) {
+    if (connected) {
+      sidebar.innerHTML = `<span class="dot-green" style="display:inline-block;margin-right:5px;"></span>GitHub: <strong>${s.owner}/${s.repo}</strong><br><span style="opacity:0.5;font-size:0.6rem;">Token active this session</span>`;
+      sidebar.style.color = 'rgba(74,181,166,0.85)';
+    } else if (hasRepo && !hasToken) {
+      sidebar.innerHTML = `<span class="dot-red" style="display:inline-block;margin-right:5px;"></span><strong>${s.owner}/${s.repo}</strong><br><span style="opacity:0.6;font-size:0.6rem;">Enter token to enable push</span>`;
+      sidebar.style.color = 'rgba(228,137,106,0.85)';
+    } else {
+      sidebar.innerHTML = `Summaries saved locally.<br>Configure GitHub → push directly.`;
+      sidebar.style.color = '';
+    }
+  }
+}
+
+// ── Push Modal ────────────────────────────────────────────────────────────────
+let pushContext = null; // 'current' (step 3) or 'detail'
+
+function openPushModal(context) {
+  const s = getGHSettings();
+  if (!s.token || !s.owner || !s.repo) {
+    toast('⚠ Set up GitHub credentials in Settings first.');
+    showView('settings');
+    return;
+  }
+
+  pushContext = context;
+
+  // Derive smart defaults
+  let domain = '', slug = '', titleGuess = '';
+  if (context === 'current') {
+    domain = document.getElementById('domain').value || 'papers';
+    const oneLiner = document.getElementById('f-one-line')?.value || '';
+    slug = slugify(oneLiner) || 'untitled-paper';
+    titleGuess = oneLiner.split('.')[0].slice(0, 60);
+  } else {
+    const p = getDB().find(x => x.id === currentDetailId);
+    if (!p) return;
+    domain = p.domain || 'papers';
+    slug = slugify(p.title);
+    titleGuess = p.title.slice(0, 60);
+  }
+
+  document.getElementById('push-path').value = `${domain}/${slug}.md`;
+  document.getElementById('push-commit-msg').value = `Add ELI5 summary: ${titleGuess}`;
+  document.getElementById('push-error').classList.remove('show');
+  document.getElementById('push-modal').classList.add('open');
+}
+
+function closePushModal() {
+  document.getElementById('push-modal').classList.remove('open');
+  pushContext = null;
+}
+
+async function confirmPush() {
+  const s = getGHSettings();
+  const path = document.getElementById('push-path').value.trim();
+  const msg  = document.getElementById('push-commit-msg').value.trim() || 'Add ELI5 summary';
+  const err  = document.getElementById('push-error');
+  const btn  = document.getElementById('push-confirm-btn');
+  err.classList.remove('show');
+
+  if (!path) { showErr(err, 'File path is required.'); return; }
+
+  let markdown = '';
+  if (pushContext === 'current') {
+    markdown = buildMarkdown();
+  } else {
+    const p = getDB().find(x => x.id === currentDetailId);
+    if (!p) { showErr(err, 'Paper not found.'); return; }
+    markdown = p.markdown;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Pushing...';
+
+  try {
+    // Check if file exists (to get SHA for update)
+    const checkRes = await fetch(
+      `https://api.github.com/repos/${s.owner}/${s.repo}/contents/${path}?ref=${s.branch}`,
+      { headers: { Authorization: `Bearer ${s.token}`, Accept: 'application/vnd.github+json' } }
+    );
+
+    let sha = undefined;
+    if (checkRes.ok) {
+      const existing = await checkRes.json();
+      sha = existing.sha; // needed for update
+    }
+
+    // Push (create or update)
+    const body = {
+      message: msg,
+      content: btoa(unescape(encodeURIComponent(markdown))), // base64 encode UTF-8
+      branch: s.branch
+    };
+    if (sha) body.sha = sha;
+
+    const pushRes = await fetch(
+      `https://api.github.com/repos/${s.owner}/${s.repo}/contents/${path}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${s.token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      }
+    );
+
+    btn.disabled = false;
+    btn.textContent = 'Push to GitHub';
+
+    if (pushRes.ok) {
+      const result = await pushRes.json();
+      closePushModal();
+      // Mark paper as pushed in DB
+      if (pushContext === 'detail' && currentDetailId) {
+        const db = getDB();
+        const idx = db.findIndex(x => x.id === currentDetailId);
+        if (idx !== -1) {
+          db[idx].ghPath = path;
+          db[idx].ghRepo = `${s.owner}/${s.repo}`;
+          db[idx].ghUrl  = result.content?.html_url || '';
+          saveDB(db);
+          refreshSidebar();
+          refreshLibrary();
+        }
+      }
+      const fileUrl = result.content?.html_url || `https://github.com/${s.owner}/${s.repo}/blob/${s.branch}/${path}`;
+      toast(`✓ Pushed! View on GitHub ↗`);
+      // Brief delay then open in new tab
+      setTimeout(() => window.open(fileUrl, '_blank'), 800);
+    } else {
+      const d = await pushRes.json();
+      showErr(err, `GitHub error: ${d.message}`);
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'Push to GitHub';
+    showErr(err, 'Network error: ' + e.message);
+  }
+}
+
+// Close modal on backdrop click
+document.getElementById('push-modal').addEventListener('click', function(e) {
+  if (e.target === this) closePushModal();
+});
+function showLoading(on) { document.getElementById('loading').classList.toggle('active', on); }
+function showErr(el, msg) { el.textContent = '⚠ ' + msg; el.classList.add('show'); }
+function toast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg;
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+refreshSidebar();
+refreshLibrary();
+refreshGHStatus();
+</script>
+</body>
+</html>
