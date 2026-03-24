@@ -45,7 +45,8 @@ body::before {
 }
 
 /* ── Layout ── */
-.app { display:grid; grid-template-columns:260px 1fr; min-height:100vh; position:relative; z-index:1; }
+.app { display:grid; grid-template-columns:260px 1fr; min-height:100vh; position:relative; z-index:1; transition:grid-template-columns 0.3s ease; }
+.app.sidebar-collapsed { grid-template-columns:0px 1fr; }
 
 /* ── Sidebar ── */
 .sidebar {
@@ -54,12 +55,30 @@ body::before {
   display:flex; flex-direction:column;
   position:sticky; top:0; height:100vh;
   overflow:hidden;
+  transition: width 0.3s ease, opacity 0.3s ease;
+  width: 260px;
 }
+.app.sidebar-collapsed .sidebar { width:0; opacity:0; pointer-events:none; }
 
-.sidebar-top {
+/* ── Collapse toggle button ── */
+.sidebar-toggle {
+  position:fixed; top:18px; left:224px;
+  z-index:50; width:28px; height:28px;
+  background:var(--ink); color:var(--paper);
+  border:1px solid rgba(245,240,232,0.15);
+  border-radius:50%; cursor:pointer;
+  font-size:0.7rem; display:flex;
+  align-items:center; justify-content:center;
+  transition: left 0.3s ease, transform 0.3s ease, background 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.sidebar-toggle:hover { background:#2e2a24; }
+.app.sidebar-collapsed .sidebar-toggle { left:10px; }
+
+/* .sidebar-top {
   padding: 28px 24px 20px;
   border-bottom: 1px solid rgba(245,240,232,0.08);
-}
+} */
 
 .logo {
   font-family: 'Fraunces', serif;
@@ -498,7 +517,9 @@ textarea { min-height:110px; line-height:1.65; }
 </head>
 <body>
 
-<div class="app">
+<div class="app" id="app">
+  <!-- ── Collapse toggle ── -->
+  <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">◀</button>
   <!-- ── Sidebar ── -->
   <aside class="sidebar">
     <div class="sidebar-top">
@@ -1035,12 +1056,7 @@ async function generateDraft() {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method:'POST',
-      headers:{
-        'Content-Type': 'application/json',
-        'x-api-key': '%%ANTHROPIC_API_KEY%%',
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
+      headers:{ 'Content-Type':'application/json' },
       body:JSON.stringify({ model: CONFIG.model, max_tokens:1000, system, messages })
     });
     const data = await res.json();
@@ -1242,6 +1258,15 @@ function deleteCurrentDetail() {
   deletePaper(currentDetailId);
   currentDetailId = null;
   showView('library');
+}
+
+// ── Sidebar collapse ──────────────────────────────────────────────────────────
+function toggleSidebar() {
+  const app = document.getElementById('app');
+  const btn = document.getElementById('sidebar-toggle');
+  const collapsed = app.classList.toggle('sidebar-collapsed');
+  btn.textContent = collapsed ? '▶' : '◀';
+  btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
 }
 
 // ── GitHub Settings ───────────────────────────────────────────────────────────
