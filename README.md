@@ -4,7 +4,7 @@
 
 ## Live App
 
-`https://<your-username>.github.io/<repo-name>/`
+`https://adithyaprasadsv.github.io/eli-5-domain-research-simplified/`
 
 ## First-Time Setup
 
